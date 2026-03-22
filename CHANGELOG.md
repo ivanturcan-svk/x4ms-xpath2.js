@@ -1,5 +1,15 @@
 # Changelog
 
+## 1.0.0-alpha-10 (2026-03-22)
+
+### Features — §8.1 Phase 1: Per-instance function override & runtime namespace
+
+- **StaticContext.js**: Allow fn: namespace functions in `setFunction()` (removed NS_XPF guard); `getFunction()` now checks per-instance override before global
+- **FunctionCall.js**: fn: namespace dispatch checks per-instance `staticContext.functions` before falling back to global `cStaticContext.functions`
+- **DynamicContext.js**: Added `defaultElementNamespace` property for runtime namespace override
+- **NameTest.js**: `test()` prefers runtime `defaultElementNamespace` over compile-time namespace when no explicit prefix was used
+- **PathExpr.js**: Save/restore `defaultElementNamespace` across path expression evaluation
+
 ## 1.0.0-alpha-8 (2026-03-22)
 
 ### Bug Fixes
