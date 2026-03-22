@@ -1,6 +1,6 @@
 {
     "name": "x4ms-xpath2.js",
-    "version": "1.0.0-alpha-8",
+    "version": "1.0.0-alpha-9",
     "license": "MIT",
     "description": "DOM-agnostic XPath 2 parser and evaluator — fork of xpath2.js, extended for x4ms",
     "main": "lib/index.js",
