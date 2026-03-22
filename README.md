@@ -1,11 +1,19 @@
-xpath2.js - Pure JavaScript implementation of XPath 2 query language
+x4ms-xpath2.js — XPath 2 engine for x4ms
 ---
 
-![NodeJS workflow](https://github.com/ilinsky/xpath2.js/actions/workflows/node.js.yml/badge.svg?branch=master)
+> Fork of [ilinsky/xpath2.js](https://github.com/ilinsky/xpath2.js) by Sergey Ilinsky, extended and maintained for the x4ms engine.
 
-## About 
-xpath2.js is a DOM-agnostic open-source [XPath 2.0](https://www.w3.org/TR/xpath20/) implementation in JavaScript.
+## About
+x4ms-xpath2.js is a DOM-agnostic open-source [XPath 2.0](https://www.w3.org/TR/xpath20/) implementation in JavaScript.
 Execution engine operates using XML Schema 1.1 data types as prescribed by specification.
+
+### What this fork adds
+- Bug fixes for missing type imports in arithmetic expressions (cXSDouble, cXSUntypedAtomic) — see [CHANGELOG.md](CHANGELOG.md)
+- Published as `x4ms-xpath2.js` to allow independent versioning for x4ms
+- Future: custom XForms function registration and XPath expression preprocessing hooks (§8.1)
+
+### Upstream
+Original project: [ilinsky/xpath2.js](https://github.com/ilinsky/xpath2.js) — MIT licensed by Sergey Ilinsky.
 
 
 ## Features
@@ -44,14 +52,14 @@ xpath.evaluate(expression, evaluationContext, staticContext, initialScope, DOMAd
 
 #### Query without a context
 ```js
-const xpath = require("xpath2.js");
+const xpath = require("x4ms-xpath2.js");
 const result = xpath.evaluate("1 to 5");
 console.log(result); // prints [ 1, 2, 3, 4, 5 ]
 ```
 
 #### Query a document not specifying namespaces
 ```js
-const xpath = require("xpath2.js");
+const xpath = require("x4ms-xpath2.js");
 const xmldom = require("xmldom"); // You are free to use any DOM implementation
 const document = new xmldom.DOMParser().parseFromString('<test>content</test>');
 
@@ -68,7 +76,7 @@ thus making use of prefixes in expressions scoped to the query, and not to the d
 
 Exception `XPST0081` will be thrown, should any of the prefixes used in expression are left unresolved.
 ```js
-const xpath = require("xpath2.js");
+const xpath = require("x4ms-xpath2.js");
 const xmldom = require("xmldom");
 const document = new xmldom.DOMParser().parseFromString('<foo><a:bar xmlns:a="http://a">content</a:bar></foo>');
 const namespaceResolver = function(prefix) {
@@ -83,7 +91,7 @@ console.log(result); // prints [ 'content' ]
 
 #### Passing a JavaScript variable to the evaluation context
 ```js
-const xpath = require("xpath2.js");
+const xpath = require("x4ms-xpath2.js");
 
 const result = xpath.evaluate("$a + 0.2", null, null, {a: 0.1});
 console.log(result); // prints [ 0.3 ]
@@ -93,7 +101,7 @@ console.log(result); // prints [ 0.3 ]
 
 #### Using *execute* function and managing contexts
 ```js
-const xpath = require("xpath2.js");
+const xpath = require("x4ms-xpath2.js");
 const xmldom = require("xmldom");
 const document = new xmldom.DOMParser().parseFromString('<foo><a:bar xmlns:a="http://a">content</a:bar></foo>');
 const namespaceResolver = function(prefix) {
