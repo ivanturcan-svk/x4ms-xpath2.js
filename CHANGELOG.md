@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.0.0-alpha-11 (2026-03-28)
+
+### Fixes — Cross-instance namespace resolution & XForms-compatible value comparison
+
+- **DynamicContext.js**: `defaultElementNamespace` default changed from `null` to `undefined` — `null` now means "explicitly no namespace", `undefined` means "no override, use compile-time value"
+- **NameTest.js**: `test()` checks `!== undefined` instead of `!= null` for runtime namespace override detection, enabling correct namespace switching when `instance()` navigates to instances with `null` (no) default namespace
+- **ComparisonExpr.js**: Value comparison operators (`eq`, `ne`, `lt`, `gt`, `le`, `ge`) now cast `xs:untypedAtomic` to the other operand's type (matching GeneralComp behavior) instead of always casting to `xs:string`. Fixes `Page eq 1` comparisons in schema-less XForms instances where all values are `xs:untypedAtomic`
+
 ## 1.0.0-alpha-10 (2026-03-22)
 
 ### Features — §8.1 Phase 1: Per-instance function override & runtime namespace
