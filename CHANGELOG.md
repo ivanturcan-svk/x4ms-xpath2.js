@@ -1,5 +1,20 @@
 # Changelog
 
+## 1.0.0-alpha-12 (2026-04-24)
+
+### Feature — Pluggable date provider on DynamicContext
+
+- **DynamicContext.js**: added static `cDynamicContext.dateProvider` hook. Consumers can override this to steer the baseline returned by `fn:current-date()`, `fn:current-dateTime()`, `fn:current-time()` and `fn:implicit-timezone()`. Default behaviour is unchanged (`new Date()`).
+
+  ```js
+  var xpath = require('x4ms-xpath2.js');
+  xpath.DynamicContext.dateProvider = function() {
+      return getSimulatedDate() || new Date();
+  };
+  ```
+
+  Motivated by x4ms §Fáza F (preview-time simulated date). Previously consumers had to mutate `dynCtx.dateTime` fields post-construction, which fought the broken prototype chain (`cXSDateTime.prototype = new cXSAnyAtomicType` wipes `.constructor`). A single-point hook keeps every derived accessor consistent.
+
 ## 1.0.0-alpha-11 (2026-03-28)
 
 ### Fixes — Cross-instance namespace resolution & XForms-compatible value comparison
