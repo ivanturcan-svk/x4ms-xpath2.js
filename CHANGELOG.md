@@ -1,5 +1,15 @@
 # Changelog
 
+## 1.0.0-alpha-13 (2026-07-26)
+
+### Rebrand — x4ms-xpath2.js is now @xformado/xpath2
+
+- Package renamed from `x4ms-xpath2.js` to `@xformado/xpath2` as part of the
+  x4ms → xformado rebrand. No functional changes.
+- Repository transferred to [xformado/xformado-xpath2.js](https://github.com/xformado/xformado-xpath2.js)
+  (fork lineage to [ilinsky/xpath2.js](https://github.com/ilinsky/xpath2.js) preserved).
+- Historical changelog entries below intentionally keep the old package name.
+
 ## 1.0.0-alpha-12 (2026-04-24)
 
 ### Feature — Pluggable date provider on DynamicContext
