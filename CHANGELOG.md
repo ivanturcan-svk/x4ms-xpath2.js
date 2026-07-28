@@ -1,5 +1,19 @@
 # Changelog
 
+## Unreleased
+
+### Chore — npm pre-publish hygiene (no runtime changes)
+
+- **package.json**: added `files` allowlist (`lib` only) so the published
+  tarball no longer carries the test suite; normalized `repository.url` to the
+  `git+https://` form npm expects.
+- **package.json / test**: the test suite now runs with a fixed timezone
+  (`TZ=UTC` in the `test` script) — the `implicit-timezone()` spec previously
+  depended on the machine's local timezone and failed outside UTC. Test-only
+  change; runtime code untouched.
+- **CI**: Node.js workflow matrix updated from EOL Node 8–15 to current LTS
+  (22.x, 24.x); `actions/checkout` and `actions/setup-node` bumped to v4.
+
 ## 1.0.0-alpha-13 (2026-07-26)
 
 ### Rebrand — x4ms-xpath2.js is now @xformado/xpath2

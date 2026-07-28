@@ -29,6 +29,8 @@ describe("context", function() {
     });
 
     describe("implicit-timezone()", function() {
+        // The test suite runs with a fixed timezone (TZ=UTC, see the "test"
+        // script in package.json), so the expected offset is always 0.
         var offset	= 0,
             sign	= offset <= 0,
             hours	= ~~(Math.abs(offset) / 60),
