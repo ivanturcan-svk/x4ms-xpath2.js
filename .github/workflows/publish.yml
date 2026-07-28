@@ -1,0 +1,48 @@
+# Publishes @xformado/xpath2 to the public npm registry with provenance.
+#
+# Preferred auth: npm trusted publishing (OIDC) — configured on npmjs.com
+# (package Settings → Trusted publishing) pointing at this repository and
+# this workflow file. No long-lived secrets required.
+#
+# Bootstrap note: a trusted publisher can only be configured for a package
+# that already exists on the registry. For the very first publish, set the
+# repository secret NPM_TOKEN (granular access token limited to the
+# @xformado scope, publish permission) and run this workflow. Once the
+# trusted publisher is configured, delete the secret and revoke the token —
+# subsequent runs authenticate via OIDC automatically.
+
+name: Publish to npm
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+
+permissions: {}
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write # OIDC for trusted publishing + provenance
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24.x
+          registry-url: 'https://registry.npmjs.org'
+
+      # Trusted publishing requires npm >= 11.5.1
+      - name: Update npm
+        run: npm install -g npm@latest
+
+      - run: npm ci
+
+      - run: npm test
+
+      - name: Publish
+        run: npm publish --provenance --access public
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}

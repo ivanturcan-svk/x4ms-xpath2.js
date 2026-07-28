@@ -1,6 +1,18 @@
 # Changelog
 
-## Unreleased
+## 1.0.0-beta.1 (2026-07-28)
+
+First release published to the public npm registry. No runtime changes since
+`1.0.0-alpha-13` — this release covers packaging, CI and release
+infrastructure only.
+
+### Release infrastructure
+
+- **Publishing**: added `.github/workflows/publish.yml` — publishes to the
+  public npm registry from GitHub Actions with npm provenance
+  (`npm publish --provenance --access public`), designed for npm trusted
+  publishing (OIDC, `id-token: write`). Triggered by `v*` tags or manual
+  dispatch.
 
 ### Chore — npm pre-publish hygiene (no runtime changes)
 
