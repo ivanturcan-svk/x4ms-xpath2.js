@@ -13,6 +13,10 @@ infrastructure only.
   (`npm publish --provenance --access public`), designed for npm trusted
   publishing (OIDC, `id-token: write`). Triggered by `v*` tags or manual
   dispatch.
+- **CI**: CodeQL workflow migrated from the deprecated
+  `github/codeql-action@v1` (unsupported since 2023, failing on current
+  runners) to `@v3` with `actions/checkout@v4` and an explicit
+  `security-events: write` permission block.
 
 ### Chore — npm pre-publish hygiene (no runtime changes)
 
