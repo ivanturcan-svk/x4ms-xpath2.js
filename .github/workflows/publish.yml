@@ -42,7 +42,20 @@ jobs:
 
       - run: npm test
 
+      # npm requires an explicit dist-tag when publishing a prerelease
+      # version. Derive it from the version suffix (e.g. 1.0.0-beta.1 →
+      # "beta"); stable versions publish under the default "latest".
+      - name: Determine dist-tag
+        run: |
+          version="$(node -p "require('./package.json').version")"
+          case "$version" in
+            *-*) dist_tag="$(echo "$version" | sed -E 's/^[^-]+-([a-zA-Z]+).*$/\1/')" ;;
+            *)   dist_tag="latest" ;;
+          esac
+          echo "Publishing $version with dist-tag: $dist_tag"
+          echo "DIST_TAG=$dist_tag" >> "$GITHUB_ENV"
+
       - name: Publish
-        run: npm publish --provenance --access public
+        run: npm publish --provenance --access public --tag "$DIST_TAG"
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}

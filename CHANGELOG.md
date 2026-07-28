@@ -12,7 +12,9 @@ infrastructure only.
   public npm registry from GitHub Actions with npm provenance
   (`npm publish --provenance --access public`), designed for npm trusted
   publishing (OIDC, `id-token: write`). Triggered by `v*` tags or manual
-  dispatch.
+  dispatch. The dist-tag is derived from the version (prerelease suffix →
+  e.g. `beta`, stable → `latest`) because npm requires an explicit `--tag`
+  for prerelease versions.
 - **CI**: CodeQL workflow migrated from the deprecated
   `github/codeql-action@v1` (unsupported since 2023, failing on current
   runners) to `@v3` with `actions/checkout@v4` and an explicit
