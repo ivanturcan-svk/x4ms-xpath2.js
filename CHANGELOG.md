@@ -1,5 +1,40 @@
 # Changelog
 
+## 1.0.0-beta.2 (2026-07-30)
+
+Strict mode compatibility release. The library ships as CommonJS, but ESM
+bundlers that inline it into an ES module output run the code in strict mode
+(ES modules are always strict); three places relied on sloppy-mode-only
+constructs and broke there. Sloppy-mode behavior is unchanged.
+
+### Fixed
+
+- **`lib/expressions/for/ForExpr.js:21`, `lib/expressions/quantified/QuantifiedExpr.js:27`**:
+  the recursive binding walk used `arguments.callee`, which throws a
+  `TypeError` in strict mode — `for` / `some` / `every` expressions with two
+  or more bindings failed under strict-mode consumers. Replaced with a named
+  function expression (semantically identical recursion).
+- **`lib/functions/numeric.js:50, :57`**: `nDecimal` in both branches of
+  `fn:round-half-to-even()` was assigned without a declaration (the preceding
+  `var` list ended one line early) — an implicit global in sloppy mode, a
+  `ReferenceError` on every `round-half-to-even()` call in strict mode. Now
+  part of the `var` declaration list; the value no longer leaks into the
+  global scope.
+
+### Test infrastructure
+
+- **`npm run test:strict`**: runs the same full suite with every `lib/`
+  module recompiled under a prepended `"use strict"` directive
+  (`test/strict-preload.js`), reproducing what an ESM bundler does. On the
+  unfixed code this failed with 36 errors; both modes now pass identically
+  (930 passing). Added to CI.
+- **New specs**: multi-binding `some`/`every` (two bindings) and
+  three-binding `for`/`some` cases — the recursive binding walk was
+  previously only covered for `for` with two bindings.
+- **ESLint**: `no-caller` (error) added to the config, plus a focused
+  `npm run lint:no-caller` script enforced in CI so `arguments.callee` /
+  `arguments.caller` cannot come back.
+
 ## 1.0.0-beta.1 (2026-07-28)
 
 First release published to the public npm registry. No runtime changes since
