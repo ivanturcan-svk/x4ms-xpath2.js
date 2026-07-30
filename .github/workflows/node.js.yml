@@ -28,3 +28,7 @@ jobs:
     - run: npm ci
     - run: npm run build --if-present
     - run: npm test
+    # Same suite recompiled with "use strict" — guards ESM/strict consumers
+    - run: npm run test:strict
+    # Focused static guard (full lint has pre-existing findings out of scope)
+    - run: npm run lint:no-caller

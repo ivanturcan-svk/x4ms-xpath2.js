@@ -21,6 +21,7 @@
         "no-redeclare": [1],
         "no-undefined": [2],
         "no-with": [2],
+        "no-caller": [2],
         "radix": [2]
     },
     "extends": "eslint:recommended"
