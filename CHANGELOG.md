@@ -1,5 +1,20 @@
 # Changelog
 
+## [Unreleased]
+
+### Changed — how this file references things
+
+- **`§` references in older entries below did not mean specification
+  sections.** They referred to numbered sections of an internal planning
+  document that is not published with this package, so they were not
+  resolvable by anyone reading the changelog. They have been replaced with
+  plain descriptions of what changed, and are no longer used.
+- References to the XForms 2.0 specification now name the section rather than
+  numbering it (`XForms 2.0 → Expressions → Model functions`). XForms 2.0 is a
+  living Community Group document whose sections get renumbered, so a number
+  fails silently — it points nowhere, or resolves to a different section while
+  still looking valid.
+
 ## 1.0.0-beta.2 (2026-07-30)
 
 Strict mode compatibility release. The library ships as CommonJS, but ESM
@@ -90,7 +105,7 @@ infrastructure only.
   };
   ```
 
-  Motivated by x4ms §Fáza F (preview-time simulated date). Previously consumers had to mutate `dynCtx.dateTime` fields post-construction, which fought the broken prototype chain (`cXSDateTime.prototype = new cXSAnyAtomicType` wipes `.constructor`). A single-point hook keeps every derived accessor consistent.
+  Motivated by preview-time simulated-date support in the form designer. Previously consumers had to mutate `dynCtx.dateTime` fields post-construction, which fought the broken prototype chain (`cXSDateTime.prototype = new cXSAnyAtomicType` wipes `.constructor`). A single-point hook keeps every derived accessor consistent.
 
 ## 1.0.0-alpha-11 (2026-03-28)
 
@@ -102,7 +117,7 @@ infrastructure only.
 
 ## 1.0.0-alpha-10 (2026-03-22)
 
-### Features — §8.1 Phase 1: Per-instance function override & runtime namespace
+### Features — Per-instance function override & runtime namespace
 
 - **StaticContext.js**: Allow fn: namespace functions in `setFunction()` (removed NS_XPF guard); `getFunction()` now checks per-instance override before global
 - **FunctionCall.js**: fn: namespace dispatch checks per-instance `staticContext.functions` before falling back to global `cStaticContext.functions`

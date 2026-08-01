@@ -10,7 +10,7 @@ Execution engine operates using XML Schema 1.1 data types as prescribed by speci
 ### What this fork adds
 - Bug fixes for missing type imports in arithmetic expressions (cXSDouble, cXSUntypedAtomic) — see [CHANGELOG.md](CHANGELOG.md)
 - Published as `@xformado/xpath2` to allow independent versioning for xformado (originally `x4ms-xpath2.js`)
-- Future: custom XForms function registration and XPath expression preprocessing hooks (§8.1)
+- Future: custom XForms function registration and XPath expression preprocessing hooks
 
 ### Upstream
 Original project: [ilinsky/xpath2.js](https://github.com/ilinsky/xpath2.js) — MIT licensed by Sergey Ilinsky.
@@ -120,3 +120,16 @@ console.log(result); // prints [ 'content' ]
 ```
 
 > Note! Dynamic context carries date/time obtained during its creation
+
+## Spec references
+
+This package implements [XPath 2.0](https://www.w3.org/TR/xpath20/), a frozen
+W3C Recommendation. Where the surrounding xformado project references the
+[XForms 2.0 specification](https://www.w3.org/community/xformsusers/wiki/XForms_2.0) — a *living* Community Group document whose
+sections get renumbered — references **name the section rather than numbering
+it**, because a stale number fails silently: it points nowhere, or resolves to
+a different section while still looking valid.
+
+`§` references in this file's history pointed at an internal planning document
+that is not published with the package; they have been replaced with plain
+descriptions.
