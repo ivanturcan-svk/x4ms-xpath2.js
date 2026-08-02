@@ -1,5 +1,5 @@
 /**
- * Tests for §8.1 — per-instance fn: function override & runtime namespace
+ * Tests for per-instance fn: function override & runtime namespace
  */
 var xpath = require('./../../lib');
 var StaticContext = require('./../../lib/classes/StaticContext');
@@ -28,7 +28,7 @@ function buildInstanceDoc(ns, rootName, childNames) {
     return doc;
 }
 
-describe("§8.1 per-instance fn: function override", function() {
+describe("per-instance fn: function override", function() {
 
     describe("StaticContext.setFunction — fn: namespace", function() {
         it('allows registering fn: namespace functions', function() {
