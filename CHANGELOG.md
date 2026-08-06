@@ -2,6 +2,30 @@
 
 ## [Unreleased]
 
+## 1.0.0-beta.3 (2026-08-06)
+
+**No code changes. `1.0.0-beta.3` and `1.0.0-beta.2` contain byte-identical
+library code** — nothing under `lib/` was touched between them. If you already
+run `1.0.0-beta.2`, upgrading changes nothing about how this package behaves,
+and there is no functional reason to do it.
+
+What this release exists for is the documentation npm ships inside the package
+and displays on its package page: the README was corrected after
+`1.0.0-beta.2` was already published, and npm renders whatever README was in
+the tarball at publish time. Without a new release the package page keeps
+showing the superseded text, and no further release of this package is
+expected for some months.
+
+### Documentation
+
+- The README no longer cites a specification section by number, and now states
+  plainly that this package implements XPath 2.0 as a frozen W3C
+  Recommendation — as opposed to the living XForms 2.0 Community Group
+  document the surrounding project tracks, whose section numbers shift.
+- The changelog's own reference style is documented, and unresolvable
+  references in older entries were replaced with plain descriptions — see
+  "Changed — how this file references things" below.
+
 ### Release infrastructure
 
 - **The publish workflow now publishes under the `latest` dist-tag** instead of
