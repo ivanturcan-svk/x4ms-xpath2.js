@@ -152,8 +152,10 @@ jobs:
             "https://registry.npmjs.org/-/npm/v1/oidc/token/exchange/package/$encoded_pkg")"
           status="$(printf '%s' "$response" | tail -n1)"
           body="$(printf '%s' "$response" | sed '$d')"
-          if [ "$status" != "200" ]; then
-            echo "::error::Registry refused the OIDC exchange (HTTP $status): $body"
+          # The success body carries the credential, so it is never echoed —
+          # only the registry's own message field is, and only when it failed.
+          if [ "$status" != "200" ] && [ "$status" != "201" ]; then
+            echo "::error::Registry refused the OIDC exchange (HTTP $status): $(printf '%s' "$body" | jq -r '.message // "no message"')"
             exit 1
           fi
           token="$(printf '%s' "$body" | jq -r '.token')"
@@ -161,6 +163,7 @@ jobs:
             echo "::error::Registry returned no token in the exchange response."
             exit 1
           fi
+          echo "OIDC exchange accepted (HTTP $status); short-lived token obtained."
           echo "::add-mask::$token"
           echo "NPM_OIDC_TOKEN=$token" >> "$GITHUB_ENV"
 
