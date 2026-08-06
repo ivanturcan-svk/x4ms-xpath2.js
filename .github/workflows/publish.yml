@@ -1,17 +1,12 @@
-# Registry writes for @xformado/xpath2 — publishing a version, and moving a
-# dist-tag onto an already-published one.
+# Publishes @xformado/xpath2 to the public npm registry.
 #
 # Auth: npm trusted publishing (OIDC) — configured on npmjs.com (package
 # Settings → Trusted publishing) pointing at this repository and this workflow
 # file. No long-lived secrets required.
 #
-# Why both jobs live in this one file: npm binds a trusted publisher to a
-# specific workflow *file*, not to the repository. A registry write dispatched
-# from any other file is rejected at the OIDC exchange (measured 2026-08-06:
-# HTTP 404 "OIDC token exchange error - package not found" from a separate
-# dist-tag.yml, while this file publishes fine). Splitting them would mean
-# either a second trusted-publisher entry or a long-lived token; keeping them
-# together costs one input.
+# npm binds a trusted publisher to a specific workflow *file*, not to the
+# repository: a registry write dispatched from any other file is rejected at
+# the OIDC exchange. Keep registry writes in this file.
 #
 # Bootstrap note: a trusted publisher can only be configured for a package
 # that already exists on the registry. For the very first publish, set the
@@ -26,36 +21,19 @@ on:
   push:
     tags: ['v*']
   workflow_dispatch:
-    inputs:
-      task:
-        description: 'What to do'
-        type: choice
-        options:
-          - publish
-          - move-dist-tag
-        default: publish
-      dist_tag:
-        description: 'move-dist-tag only — tag to move (e.g. latest)'
-        required: false
-        default: 'latest'
-      version:
-        description: 'move-dist-tag only — already-published version the tag should point at'
-        required: false
 
 permissions: {}
 
 jobs:
   publish:
-    # Tag pushes carry no inputs, so they must not be gated on one.
-    if: github.event_name == 'push' || inputs.task == 'publish'
     runs-on: ubuntu-latest
     permissions:
       contents: read
       id-token: write # OIDC for trusted publishing + provenance
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v5
         with:
           node-version: 24.x
           registry-url: 'https://registry.npmjs.org'
@@ -68,125 +46,39 @@ jobs:
 
       - run: npm test
 
-      # npm requires an explicit dist-tag when publishing a prerelease
-      # version. Derive it from the version suffix (e.g. 1.0.0-beta.1 →
-      # "beta"); stable versions publish under the default "latest".
-      - name: Determine dist-tag
-        run: |
-          version="$(node -p "require('./package.json').version")"
-          case "$version" in
-            *-*) dist_tag="$(echo "$version" | sed -E 's/^[^-]+-([a-zA-Z]+).*$/\1/')" ;;
-            *)   dist_tag="latest" ;;
-          esac
-          echo "Publishing $version with dist-tag: $dist_tag"
-          echo "DIST_TAG=$dist_tag" >> "$GITHUB_ENV"
-
+      # The dist-tag is stated here, not derived from the version string, and
+      # it is deliberately "latest".
+      #
+      # `npm publish` sets exactly one dist-tag, and this workflow cannot move
+      # a tag afterwards: the OIDC identity it authenticates with is scoped to
+      # publishing, so `npm dist-tag add` fails with E401 (measured
+      # 2026-08-06). Whatever tag is set here is therefore the only tag the
+      # release gets — and it has to be the one `npm install @xformado/xpath2`
+      # resolves to.
+      #
+      # Deriving it from the version suffix (1.0.0-beta.3 → "beta") left
+      # "latest" behind on an older version, which is what consumers actually
+      # install. This package has no stable line yet: the newest prerelease is
+      # the recommended release. Should that ever stop being true — an
+      # experimental build published alongside a stable line — change this tag
+      # in the same commit that bumps the version, deliberately.
       - name: Publish
-        run: npm publish --provenance --access public --tag "$DIST_TAG"
+        run: npm publish --provenance --access public --tag latest
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-
-  # Moves an existing dist-tag onto an already-published version. Publishes
-  # nothing and touches no version number. Reusable on purpose: the immediate
-  # need is putting "latest" on the strict-mode fix, but the same run promotes
-  # a release candidate to "latest" at release time — pass the inputs, do not
-  # edit this file.
-  move-dist-tag:
-    if: github.event_name == 'workflow_dispatch' && inputs.task == 'move-dist-tag'
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      id-token: write # OIDC — the same grant publishing uses
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 24.x
-          registry-url: 'https://registry.npmjs.org'
-
-      - name: Update npm
-        run: npm install -g npm@latest
-
-      - name: Resolve package name
-        run: echo "PKG=$(node -p "require('./package.json').name")" >> "$GITHUB_ENV"
-
-      # A dist-tag pointing at a version that does not exist breaks the package
-      # page and `npm install`. Refuse rather than trust the operator's typing.
-      - name: Refuse to point the tag at a version that is not published
-        env:
-          VERSION: ${{ inputs.version }}
-        run: |
-          set -euo pipefail
-          if [ -z "$VERSION" ]; then
-            echo "::error::version input is required for move-dist-tag."
-            exit 1
-          fi
-          echo "Package: $PKG"
-          echo "Requested version: $VERSION"
-          if ! npm view "$PKG@$VERSION" version --registry https://registry.npmjs.org >/dev/null 2>&1; then
-            echo "::error::$PKG@$VERSION is not published — refusing to move a dist-tag onto it."
-            exit 1
-          fi
-          echo "Dist-tags before:"
-          npm dist-tag ls "$PKG" --registry https://registry.npmjs.org
-
-      # npm wires its own OIDC handling into `publish` only — `dist-tag` runs
-      # unauthenticated and fails with E401 (measured 2026-08-06). So the
-      # exchange is done explicitly here. Still trusted publishing: the same
-      # GitHub identity, the same registry endpoint, a token that lives for
-      # minutes and is never stored.
-      - name: Exchange the OIDC identity for a short-lived registry token
-        run: |
-          set -euo pipefail
-          id_token="$(curl -sS -H "Authorization: bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" \
-            "$ACTIONS_ID_TOKEN_REQUEST_URL&audience=npm:registry.npmjs.org" | jq -r '.value')"
-          if [ -z "$id_token" ] || [ "$id_token" = "null" ]; then
-            echo "::error::GitHub did not issue an OIDC identity token."
-            exit 1
-          fi
-          encoded_pkg="$(printf '%s' "$PKG" | jq -sRr @uri)"
-          response="$(curl -sS -w '\n%{http_code}' -X POST \
-            -H "Authorization: Bearer $id_token" \
-            -H 'Content-Type: application/json' \
-            "https://registry.npmjs.org/-/npm/v1/oidc/token/exchange/package/$encoded_pkg")"
-          status="$(printf '%s' "$response" | tail -n1)"
-          body="$(printf '%s' "$response" | sed '$d')"
-          # The success body carries the credential, so it is never echoed —
-          # only the registry's own message field is, and only when it failed.
-          if [ "$status" != "200" ] && [ "$status" != "201" ]; then
-            echo "::error::Registry refused the OIDC exchange (HTTP $status): $(printf '%s' "$body" | jq -r '.message // "no message"')"
-            exit 1
-          fi
-          token="$(printf '%s' "$body" | jq -r '.token')"
-          if [ -z "$token" ] || [ "$token" = "null" ]; then
-            echo "::error::Registry returned no token in the exchange response."
-            exit 1
-          fi
-          echo "OIDC exchange accepted (HTTP $status); short-lived token obtained."
-          echo "::add-mask::$token"
-          echo "NPM_OIDC_TOKEN=$token" >> "$GITHUB_ENV"
-
-      - name: Move the dist-tag
-        env:
-          DIST_TAG: ${{ inputs.dist_tag }}
-          VERSION: ${{ inputs.version }}
-          NODE_AUTH_TOKEN: ${{ env.NPM_OIDC_TOKEN }}
-        run: npm dist-tag add "$PKG@$VERSION" "$DIST_TAG"
 
       # Reads back from the registry rather than trusting the exit code of the
       # command that made the change — this is what `npm install` actually gets.
       - name: Verify against the public registry
-        env:
-          DIST_TAG: ${{ inputs.dist_tag }}
-          VERSION: ${{ inputs.version }}
         run: |
           set -euo pipefail
-          echo "Dist-tags after:"
-          npm dist-tag ls "$PKG" --registry https://registry.npmjs.org
-          actual="$(npm view "$PKG" "dist-tags.$DIST_TAG" --registry https://registry.npmjs.org)"
-          if [ "$actual" != "$VERSION" ]; then
-            echo "::error::$DIST_TAG is $actual, expected $VERSION."
+          version="$(node -p "require('./package.json').version")"
+          pkg="$(node -p "require('./package.json').name")"
+          echo "Dist-tags now:"
+          npm dist-tag ls "$pkg" --registry https://registry.npmjs.org
+          actual="$(npm view "$pkg" dist-tags.latest --registry https://registry.npmjs.org)"
+          if [ "$actual" != "$version" ]; then
+            echo "::error::latest is $actual, expected $version."
             exit 1
           fi
-          echo "$DIST_TAG now points at $VERSION."
+          echo "latest now points at $version."

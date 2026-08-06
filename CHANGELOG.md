@@ -2,6 +2,21 @@
 
 ## [Unreleased]
 
+### Release infrastructure
+
+- **The publish workflow now publishes under the `latest` dist-tag** instead of
+  deriving the tag from the version suffix. `npm publish` sets exactly one
+  dist-tag, and deriving it meant every prerelease landed under `beta` while
+  `latest` — the tag `npm install @xformado/xpath2` actually resolves to —
+  stayed behind on an older version.
+- **Removed the manually dispatched job that moved a dist-tag.** It could not
+  work: the OIDC identity used for trusted publishing is scoped to publishing,
+  so `npm dist-tag add` is rejected with `E401`. A workflow that always fails
+  is worse than no workflow.
+- **CI actions updated** to `actions/checkout@v5` and `actions/setup-node@v5`
+  across all workflows; the v4 line runs on a Node version GitHub has
+  deprecated for actions.
+
 ### Changed — how this file references things
 
 - **`§` references in older entries below did not mean specification
