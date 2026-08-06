@@ -37,7 +37,7 @@ expected for some months.
   work: the OIDC identity used for trusted publishing is scoped to publishing,
   so `npm dist-tag add` is rejected with `E401`. A workflow that always fails
   is worse than no workflow.
-- **CI actions updated** to `actions/checkout@v5` and `actions/setup-node@v5`
+- **CI actions updated** to `actions/checkout@v7` and `actions/setup-node@v7`
   across all workflows; the v4 line runs on a Node version GitHub has
   deprecated for actions.
 
