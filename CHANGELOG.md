@@ -2,6 +2,19 @@
 
 ## [Unreleased]
 
+### Build and release
+
+- Added a project-level `.npmrc` that pins the registry to
+  `https://registry.npmjs.org/`. This repository was the only one in the
+  platform without one, and the gap was not theoretical: a machine-level
+  `~/.npmrc` on the release machine points at a local mirror, so npm commands
+  run from this directory resolved against the mirror and reported success
+  there. `npm dist-tag add` moved the tag on the mirror while the public
+  registry was left untouched, and nothing failed or warned. Measured after
+  adding the file: `npm config get registry` in this directory now answers
+  `https://registry.npmjs.org/` instead of the mirror. No credentials are in
+  the file, and none belong there.
+
 ## 1.0.0-beta.3 (2026-08-06)
 
 **No code changes. `1.0.0-beta.3` and `1.0.0-beta.2` contain byte-identical
