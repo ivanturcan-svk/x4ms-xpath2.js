@@ -120,16 +120,3 @@ console.log(result); // prints [ 'content' ]
 ```
 
 > Note! Dynamic context carries date/time obtained during its creation
-
-## Spec references
-
-This package implements [XPath 2.0](https://www.w3.org/TR/xpath20/), a frozen
-W3C Recommendation. Where the surrounding xformado project references the
-[XForms 2.0 specification](https://www.w3.org/community/xformsusers/wiki/XForms_2.0) — a *living* Community Group document whose
-sections get renumbered — references **name the section rather than numbering
-it**, because a stale number fails silently: it points nowhere, or resolves to
-a different section while still looking valid.
-
-`§` references in this file's history pointed at an internal planning document
-that is not published with the package; they have been replaced with plain
-descriptions.
