@@ -66,6 +66,33 @@ The rounding rule each one applies was already correct and is unchanged —
 `fn:round()` still returns the nearest value and sends an exact half towards
 positive infinity, so `fn:round(-1.5)` is `-1`.
 
+### Changed — an exact value keeps its notation on the way out of `evaluate()`
+
+`evaluate()` converted every number to a double on the doorstep, so everything
+the exact type buys was spent there: `1 div 3` left the engine as
+`0.3333333333333333` and a thirty-digit decimal as `1.2345678901234568e+29`,
+and the host had no way of learning what had actually been worked out.
+
+**A value crosses as a plain number whenever a plain number writes it out
+unchanged** — which is every result this engine could already write correctly,
+and every `xs:double` and `xs:float` by definition. `typeof`,
+`Number.isFinite()` and `JSON` see nothing new for any of them.
+
+Only when the double would write a different text does the value cross as a
+**boxed `Number` carrying the exact notation in `toString()`**:
+
+```js
+var v = xpath.evaluate("1 div 3")[0];
+String(v)      // "0.33333333333333333333"
+v * 3          // 1
+v.toFixed(2)   // "0.33"
+```
+
+⚠️ The default primitive hint is still the number, so `v + ""` gives the
+double's text while `String(v)` and `` `${v}` `` give the exact one. That is
+deliberate: a host must be able to keep computing with the value, which is why
+this is an object and not a string.
+
 ### Added — `DOMAdapter.getTypeAnnotation()`, so a host can say what a node is
 
 The XPath data model gives every node a type annotation. This engine had the
