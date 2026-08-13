@@ -180,6 +180,79 @@ describe("decimal precision", function() {
         });
     });
 
+    // Functions and Operators, section "Functions on Numeric Values": abs,
+    // ceiling, floor and round return the type they were given. They used to
+    // return xs:decimal whatever went in, and computed through a double to get
+    // there.
+    describe("numeric functions keep the type they were given", function() {
+        function typeOf(sExpression) {
+            return xpath.evaluate('(' + sExpression + ') instance of xs:integer')[0] ? "integer"
+                 : xpath.evaluate('(' + sExpression + ') instance of xs:double')[0] ? "double"
+                 : xpath.evaluate('(' + sExpression + ') instance of xs:float')[0] ? "float"
+                 : "decimal";
+        }
+
+        it('an integer argument comes back an integer', function() {
+            expect(typeOf("fn:abs(-3)")).to.equal("integer");
+            expect(typeOf("fn:round(7)")).to.equal("integer");
+        });
+
+        it('a double argument comes back a double', function() {
+            expect(typeOf("fn:abs(xs:double(-3.5))")).to.equal("double");
+            expect(typeOf("fn:ceiling(xs:double(1.5))")).to.equal("double");
+        });
+
+        it('a float argument comes back a float', function() {
+            expect(typeOf("fn:abs(xs:float(-3.5))")).to.equal("float");
+        });
+
+        it('a decimal argument comes back a decimal', function() {
+            expect(typeOf("fn:abs(-3.5)")).to.equal("decimal");
+        });
+
+        // A value exactly half way rounds towards positive infinity.
+        it('rounds half towards +INF', function() {
+            expect(stringOf("fn:round(1.5)")).to.equal("2");
+            expect(stringOf("fn:round(-1.5)")).to.equal("-1");
+            expect(stringOf("fn:round(2.5)")).to.equal("3");
+            expect(stringOf("fn:round(-2.5)")).to.equal("-2");
+        });
+
+        it('floors and ceilings negatives the right way', function() {
+            expect(stringOf("fn:floor(-1.5)")).to.equal("-2");
+            expect(stringOf("fn:ceiling(-1.5)")).to.equal("-1");
+        });
+    });
+
+    // Functions and Operators, section "fn:sum": with no $zero argument the
+    // empty sequence sums to xs:integer(0). It answered xs:double(0).
+    describe("fn:sum over the empty sequence", function() {
+        it('is an integer zero', function() {
+            expect(xpath.evaluate("fn:sum(()) instance of xs:integer")[0])
+                .to.equal(true);
+        });
+    });
+
+    // Durations are tied to xs:decimal — dividing two of them returns one, and
+    // multiplying one takes a numeric operand. This is the module most easily
+    // forgotten when the numeric types change underneath it.
+    describe("durations still work over the exact type", function() {
+        it('divides one duration by another', function() {
+            expect(stringOf('xs:dayTimeDuration("PT1H") div xs:dayTimeDuration("PT2H")'))
+                .to.equal("0.5");
+        });
+
+        it('divides a duration by a number', function() {
+            expect(stringOf('xs:yearMonthDuration("P2Y11M") div 1.5'))
+                .to.equal("P1Y11M");
+        });
+
+        it('multiplies a duration by a number', function() {
+            expect(stringOf('xs:dayTimeDuration("P1DT2H") * 2'))
+                .to.equal("P2DT4H");
+        });
+    });
+
     // Functions and Operators, section "Casting to numeric types": casting to
     // xs:integer truncates towards zero. This path raised a ReferenceError
     // before the type was rewritten, because three identifiers it used were

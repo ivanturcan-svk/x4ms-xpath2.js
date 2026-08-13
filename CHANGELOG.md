@@ -53,8 +53,23 @@ an `xs:integer` — `(1 + 1) instance of xs:integer` was `false` and is now
 two integers gives an `xs:decimal`, which is what the section requires; it
 previously returned an `xs:integer` holding a fraction.
 
+### Changed — numeric functions keep the type they were given
+
+`fn:abs()`, `fn:ceiling()`, `fn:floor()` and `fn:round()` returned an
+`xs:decimal` whatever went in, and computed through a raw double to get there.
+They now return the type of their argument, as Functions and Operators,
+section "Functions on Numeric Values" requires: an `xs:integer` argument comes
+back an `xs:integer`, an `xs:double` comes back an `xs:double`, and an exact
+decimal is rounded exactly rather than as a binary approximation of itself.
+
+The rounding rule each one applies was already correct and is unchanged —
+`fn:round()` still returns the nearest value and sends an exact half towards
+positive infinity, so `fn:round(-1.5)` is `-1`.
+
 ### Fixed
 
+- `fn:sum(())` with no `$zero` argument returned `xs:double(0)`. It returns
+  `xs:integer(0)` — Functions and Operators, section "fn:sum".
 - Unary minus negated its operand in place. A variable reference hands out the
   object held in scope itself, so `-$v` changed `$v`: with `$v` at `10`,
   `$v * -$v` answered `100` instead of `-100`, and `$v` was left holding `-10`
