@@ -29,8 +29,36 @@ count to the implementation (XQuery 1.0 and XPath 2.0 Functions and Operators,
 section "Operators on Numeric Values"); it does not leave the notation, and
 neither is left undeclared here.
 
+### Changed — arithmetic no longer scales operands before operating
+
+Every arithmetic operator used to multiply both operands by a power of ten,
+operate, and divide back. The intent was to hide binary rounding, and on
+`xs:double` it did — `xs:double("0.1") + xs:double("0.2")` answered `0.3`.
+But `xs:double` **is** IEEE-754, so that answer was wrong about the type, and
+the scaling introduced error of its own where the double had none:
+`129.14 * 1.2` is exactly `154.968` in IEEE-754, and scaling turned it into
+`154.96799999999996`. That value is what this work was raised to fix.
+
+- `xs:double("0.1") + xs:double("0.2")` is now `0.30000000000000004`.
+  **This is a visible change and it is the correct one.** To compute in base
+  ten, ask for it: `xs:decimal(...)` in the expression, or a type on the bind.
+- `129.14 * 1.2` over untyped values is now `154.968`.
+- An `xs:decimal` operand against an `xs:double` is promoted to `xs:double`
+  and follows it, per Functions and Operators, section "Operators on Numeric
+  Values".
+
+**Result types now follow the same section.** Two `xs:integer` operands give
+an `xs:integer` — `(1 + 1) instance of xs:integer` was `false` and is now
+`true`, because the test that chose the result class was inverted. Division of
+two integers gives an `xs:decimal`, which is what the section requires; it
+previously returned an `xs:integer` holding a fraction.
+
 ### Fixed
 
+- `fn:round-half-to-even()` was declared as taking `xs:double`, so its
+  argument was converted before the function saw it and a decimal was rounded
+  as a binary approximation of itself. It returns the type it was given —
+  Functions and Operators, section "fn:round-half-to-even".
 - `xs:integer()` applied to a number or a boolean raised
   `ReferenceError: cXSBoolean is not defined` instead of converting. Three
   identifiers the cast used were never brought into the file, so only the

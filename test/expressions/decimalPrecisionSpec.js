@@ -7,13 +7,35 @@
  */
 var xpath = require('./../../lib');
 var expect = require('chai').expect;
+var nanodom = require('./../nanodom');
+
+// <invoice><subtotal>129.14</subtotal><taxRate>1.2</taxRate></invoice>
+//
+// Values reached through a node are untyped, and untyped operands in an
+// arithmetic expression are cast to xs:double — XPath 2.0, section
+// "Arithmetic Expressions". Writing the same case over literals instead would
+// make it a decimal case and would not test this path at all.
+var invoice = (function() {
+    var doc = nanodom.createDocument();
+    var root = nanodom.createElement('invoice');
+    nanodom.addChild(doc, root);
+    [['subtotal', '129.14'], ['taxRate', '1.2']].forEach(function(pair) {
+        var el = nanodom.createElement(pair[0]);
+        nanodom.addChild(root, el);
+        nanodom.addChild(el, nanodom.createText(pair[1]));
+        // nanodom builds no textContent of its own — no other spec atomizes an
+        // element — and that is the property atomization reads.
+        el.textContent = pair[1];
+    });
+    return root;
+})();
 
 // The written form of the value, which is what a form stores in its instance
 // and sends in a submission. fn:string() is the engine's own answer; reading
 // evaluate()[0] instead would measure the JavaScript boundary, which is a
 // separate concern with its own conversion.
-function stringOf(sExpression) {
-    return String(xpath.evaluate('fn:string(' + sExpression + ')')[0]);
+function stringOf(sExpression, oContext) {
+    return String(xpath.evaluate('fn:string(' + sExpression + ')', oContext)[0]);
 }
 
 describe("decimal precision", function() {
@@ -76,6 +98,64 @@ describe("decimal precision", function() {
 
         it('rounds the last place half away from zero', function() {
             expect(stringOf("2 div 3")).to.equal("0.66666666666666666667");
+        });
+    });
+
+    // Case 2 — the case the requirement was raised for. Both operands come
+    // from the instance, so both are untyped and both are cast to xs:double.
+    // Plain IEEE-754 multiplication of those two doubles is exactly 154.968;
+    // the digits that appear today are produced by the scaling mitigation, not
+    // by the double.
+    describe("untyped values from an instance", function() {
+        it('129.14 * 1.2 does not leak into the stored value', function() {
+            expect(stringOf("subtotal * taxRate", invoice))
+                .to.equal("154.968");
+        });
+
+        // The total is the case's honest limit and is recorded as such. Under
+        // the default typing both operands are doubles, and 129.14 + 154.968
+        // is 284.10799999999995 in IEEE-754 — not an artefact of this engine
+        // but what the type means. Only an exact type reaches 284.108.
+        it('but the total stays binary while the fields are untyped', function() {
+            expect(stringOf("subtotal + subtotal * taxRate", invoice))
+                .to.equal("284.10799999999995");
+        });
+
+        it('and is exact once the values carry a decimal type', function() {
+            expect(stringOf("xs:decimal(subtotal) * xs:decimal(taxRate)", invoice))
+                .to.equal("154.968");
+            expect(stringOf("xs:decimal(subtotal) + xs:decimal(subtotal) * xs:decimal(taxRate)", invoice))
+                .to.equal("284.108");
+        });
+    });
+
+    // Cases 3, 4 and 5 — xs:double is IEEE-754 by definition, so these expect
+    // an uglier answer than the engine gives today. XQuery 1.0 and XPath 2.0
+    // Functions and Operators, section "Operators on Numeric Values" defers to
+    // that definition; hiding the rounding is what the scaling mitigation did,
+    // and it is the reason case 2 was wrong.
+    describe("xs:double is binary and says so", function() {
+        it('0.1 + 0.2 is 0.30000000000000004, not 0.3', function() {
+            expect(stringOf('xs:double("0.1") + xs:double("0.2")'))
+                .to.equal("0.30000000000000004");
+        });
+
+        it('129.14 * 1.2 is exact in binary and must not be perturbed', function() {
+            expect(stringOf('xs:double("129.14") * xs:double("1.2")'))
+                .to.equal("154.968");
+        });
+
+        // An xs:decimal operand against an xs:double is promoted to xs:double
+        // — Functions and Operators, section "Operators on Numeric Values".
+        // The exact decimal 0.1 becomes the same double the literal 0.1 is.
+        it('a decimal promoted to double follows the double', function() {
+            expect(stringOf('xs:decimal("0.1") + xs:double("0.2")'))
+                .to.equal("0.30000000000000004");
+        });
+
+        it('but two decimals stay exact', function() {
+            expect(stringOf('xs:decimal("0.1") + xs:decimal("0.2")'))
+                .to.equal("0.3");
         });
     });
 
