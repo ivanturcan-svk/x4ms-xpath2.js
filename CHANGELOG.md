@@ -66,8 +66,49 @@ The rounding rule each one applies was already correct and is unchanged —
 `fn:round()` still returns the nearest value and sends an exact half towards
 positive infinity, so `fn:round(-1.5)` is `-1`.
 
+### Changed — comparing two untyped values that are both written as numbers
+
+XPath 2.0, section "General Comparisons" compares two untyped operands as
+strings, and an instance without a schema makes every value untyped. A form
+comparing two number fields therefore compared text: `"9"` sorts after `"10"`,
+so nine was not less than ten.
+
+When **both** operands are written the way a plain number is written, they are
+now compared as numbers:
+
+```
+^-?(0|[1-9]\d*)(\.\d+)?$
+```
+
+- `<a>9</a> < <b>10</b>` is `true`. It was `false`.
+- `<a>9.50</a> < <b>10.00</b>` is `true` — a trailing zero is how money is
+  written and must not push the comparison back to text.
+- `<a>00123</a> = <b>123</b>` stays `false`. A leading zero, a leading plus, a
+  missing integer part or an exponent all mean the field holds a formatted
+  string, and the comparison stays textual for both operands.
+
+**This is a deliberate deviation from the section named above**, and the same
+one the engine already made for the mixed case, where an untyped operand is
+cast to the other side's type rather than to `xs:string`. What decides is the
+**written form of the value**, so a leading zero typed out of habit changes
+what the comparison means. Giving the field a type removes the question.
+Whitespace around the value is stripped before the form is judged, as the
+whiteSpace facet of XML Schema Part 2: Datatypes, section "decimal"
+prescribes.
+
+The comparison itself is exact: the canonical form is a decimal lexical form,
+so what is compared is what the author wrote, not the nearest double to it.
+
 ### Fixed
 
+- `op:numeric-equal`, `op:numeric-less-than` and `op:numeric-greater-than`
+  compared the doubles their operands round to. Any two exact values sharing a
+  double were equal, so `xs:decimal("0.1") lt xs:decimal("0.10000000000000000001")`
+  was `false` and two thirty-digit integers one apart were the same number —
+  the widths `xs:decimal` exists to carry. Two exact operands are now compared
+  exactly; against an `xs:double` or `xs:float` both sides are still doubles,
+  as promotion requires. Functions and Operators, section "Comparison
+  Operators on Numeric Values".
 - `fn:sum(())` with no `$zero` argument returned `xs:double(0)`. It returns
   `xs:integer(0)` — Functions and Operators, section "fn:sum".
 - Unary minus negated its operand in place. A variable reference hands out the

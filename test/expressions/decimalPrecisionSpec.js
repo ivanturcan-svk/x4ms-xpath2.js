@@ -30,12 +30,32 @@ var invoice = (function() {
     return root;
 })();
 
+// Two sibling elements <a> and <b> holding the given text, which is the shape
+// a comparison between two form fields has. Both are untyped for want of a
+// type on the bind.
+function pair(sLeft, sRight) {
+    var doc = nanodom.createDocument();
+    var root = nanodom.createElement('pair');
+    nanodom.addChild(doc, root);
+    [['a', sLeft], ['b', sRight]].forEach(function(entry) {
+        var el = nanodom.createElement(entry[0]);
+        nanodom.addChild(root, el);
+        nanodom.addChild(el, nanodom.createText(entry[1]));
+        el.textContent = entry[1];
+    });
+    return root;
+}
+
 // The written form of the value, which is what a form stores in its instance
 // and sends in a submission. fn:string() is the engine's own answer; reading
 // evaluate()[0] instead would measure the JavaScript boundary, which is a
 // separate concern with its own conversion.
 function stringOf(sExpression, oContext) {
     return String(xpath.evaluate('fn:string(' + sExpression + ')', oContext)[0]);
+}
+
+function answerOf(sExpression, oContext) {
+    return xpath.evaluate(sExpression, oContext)[0];
 }
 
 describe("decimal precision", function() {
@@ -250,6 +270,123 @@ describe("decimal precision", function() {
         it('multiplies a duration by a number', function() {
             expect(stringOf('xs:dayTimeDuration("P1DT2H") * 2'))
                 .to.equal("P2DT4H");
+        });
+    });
+
+    // Case 9 — two number fields with no type on the bind. XPath 2.0, section
+    // "General Comparisons" asks for a string comparison when both operands
+    // are untyped, and the string "9" sorts after "10", so the form answered
+    // that nine is not less than ten.
+    //
+    // This is a deliberate deviation, declared in EXTENSIONS.md: when both
+    // operands are written in canonical decimal notation they are compared as
+    // numbers. The engine already made the same call for the mixed case, where
+    // an untyped operand is cast to the other side's type.
+    describe("two untyped fields that both look like numbers", function() {
+        it('9 < 10 is true', function() {
+            expect(answerOf("a < b", pair('9', '10'))).to.equal(true);
+        });
+
+        it('holds for the value comparison too', function() {
+            expect(answerOf("a lt b", pair('9', '10'))).to.equal(true);
+        });
+
+        it('9 = 9.0 is true — the same number written two ways', function() {
+            expect(answerOf("a = b", pair('9', '9.0'))).to.equal(true);
+        });
+
+        // Ivan, 2026-08-12: a trailing zero is how money is written, so it
+        // must not push the comparison back to text — 9.50 sorts after 10.00
+        // as a string.
+        it('a trailing zero does not disqualify: 9.50 < 10.00', function() {
+            expect(answerOf("a < b", pair('9.50', '10.00'))).to.equal(true);
+        });
+
+        it('and -9.5 equals -9.50', function() {
+            expect(answerOf("a = b", pair('-9.5', '-9.50'))).to.equal(true);
+        });
+    });
+
+    // Case 8 — the guard. It answers false today and must answer false after
+    // the change, so it only earns its place if it can bring down an
+    // implementation that writes the canonical pattern too widely. Each
+    // assertion below is a form some plausible-but-wrong pattern would accept
+    // as a number, and each states the answer text comparison gives.
+    //
+    // Ivan, 2026-08-12: "číslo sa štandardne nepíše do dátového poľa
+    // s vodiacimi nulami, a teda je to formátovaný string."
+    describe("an untyped value that is not written as a plain number", function() {
+        it('00123 = 123 stays false — a leading zero is formatting', function() {
+            expect(answerOf("a = b", pair('00123', '123'))).to.equal(false);
+        });
+
+        // A pattern that let leading zeros through would compare 123 with 123
+        // and answer false here.
+        it('and 00123 < 123 is true, because the two sort as text', function() {
+            expect(answerOf("a < b", pair('00123', '123'))).to.equal(true);
+        });
+
+        it('a leading plus is formatting as well: +5 = 5 is false', function() {
+            expect(answerOf("a = b", pair('+5', '5'))).to.equal(false);
+        });
+
+        it('so is a missing integer part: .5 = 0.5 is false', function() {
+            expect(answerOf("a = b", pair('.5', '0.5'))).to.equal(false);
+        });
+
+        it('so is a trailing point: 5. = 5 is false', function() {
+            expect(answerOf("a = b", pair('5.', '5'))).to.equal(false);
+        });
+
+        it('so is exponent notation: 1e2 = 100 is false', function() {
+            expect(answerOf("a = b", pair('1e2', '100'))).to.equal(false);
+        });
+
+        it('one side is enough to disqualify: 10 < 9x sorts as text', function() {
+            expect(answerOf("a < b", pair('10', '9x'))).to.equal(true);
+        });
+
+        it('text that is not a number at all still sorts as text', function() {
+            expect(answerOf("a < b", pair('abc', 'abd'))).to.equal(true);
+            expect(answerOf("a = b", pair('abc', 'abc'))).to.equal(true);
+        });
+
+        it('and an empty field is not a number', function() {
+            expect(answerOf("a = b", pair('', '0'))).to.equal(false);
+        });
+    });
+
+    // Functions and Operators, section "Comparison Operators on Numeric
+    // Values": op:numeric-equal and its two siblings compare the values, not
+    // the doubles the values happen to round to. They went through valueOf(),
+    // so any two decimals sharing a double answered equal.
+    describe("comparisons between exact values are exact", function() {
+        it('two decimals wider than a double are not equal', function() {
+            expect(answerOf('xs:decimal("123456789012345678901234567890.1")'
+                    + ' eq xs:decimal("123456789012345678901234567890.2")'))
+                .to.equal(false);
+        });
+
+        it('and order the right way round', function() {
+            expect(answerOf('xs:decimal("123456789012345678901234567890.1")'
+                    + ' lt xs:decimal("123456789012345678901234567890.2")'))
+                .to.equal(true);
+        });
+
+        it('a difference below double resolution still shows', function() {
+            expect(answerOf('xs:decimal("0.1") lt xs:decimal("0.10000000000000000001")'))
+                .to.equal(true);
+        });
+
+        it('integers too large for a double compare exactly', function() {
+            expect(answerOf('xs:integer("123456789012345678901") eq xs:integer("123456789012345678902")'))
+                .to.equal(false);
+        });
+
+        // Promotion still applies: against an xs:double both sides are
+        // doubles, and that is what the comparison must see.
+        it('but a decimal against a double follows the double', function() {
+            expect(answerOf('xs:decimal("0.1") eq xs:double("0.1")')).to.equal(true);
         });
     });
 
