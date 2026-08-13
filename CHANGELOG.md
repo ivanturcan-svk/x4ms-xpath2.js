@@ -2,6 +2,42 @@
 
 ## [Unreleased]
 
+### Changed — `xs:decimal` is now an exact decimal type
+
+`xs:decimal` and `xs:integer` no longer hold their value as a binary floating
+point number. The value is a scaled integer, so arithmetic on decimals is
+carried out in base ten and does not pick up the rounding a double is defined
+to have.
+
+- `1.005 * 100` is `100.5`. It was `100.49999999999999`.
+- `129.14 * 1.2` is `154.968`. It was `154.96799999999996`.
+- `xs:decimal("123456789012345678901234567890.5")` keeps all its digits. It
+  previously became `1.2345678901234568e+29` — XML Schema Part 2: Datatypes,
+  section "decimal" requires at least 18 decimal digits, and the old
+  representation could not carry them.
+- `xs:integer("123456789012345678901")` is exact for the same reason.
+
+This affects `xs:decimal` and `xs:integer` only. `xs:double` and `xs:float`
+are binary by definition and are unchanged.
+
+**Notation.** Results are written in canonical form: no trailing zeros in the
+fraction and no exponent. `0.10 + 0.20` is `0.3`, not `0.30`, and `1.0` is `1`
+— which is what the previous release did too. A division that does not come
+out even is carried to 20 fraction digits and rounded half away from zero, so
+`100 div 3` is `33.33333333333333333333`. The specification leaves the digit
+count to the implementation (XQuery 1.0 and XPath 2.0 Functions and Operators,
+section "Operators on Numeric Values"); it does not leave the notation, and
+neither is left undeclared here.
+
+### Fixed
+
+- `xs:integer()` applied to a number or a boolean raised
+  `ReferenceError: cXSBoolean is not defined` instead of converting. Three
+  identifiers the cast used were never brought into the file, so only the
+  path through a string worked. `xs:integer(xs:double(3.7))` now returns `3`,
+  truncating towards zero as Functions and Operators, section "Casting to
+  numeric types" requires.
+
 ### Build and release
 
 - Added a project-level `.npmrc` that pins the registry to
