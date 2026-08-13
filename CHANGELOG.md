@@ -66,6 +66,56 @@ The rounding rule each one applies was already correct and is unchanged —
 `fn:round()` still returns the nearest value and sends an exact half towards
 positive infinity, so `fn:round(-1.5)` is `-1`.
 
+### Added — `DOMAdapter.getTypeAnnotation()`, so a host can say what a node is
+
+The XPath data model gives every node a type annotation. This engine had the
+schema-less case wired in: `atomize()` made every node an `xs:untypedAtomic`
+and never asked. A host that does know the type — an XForms processor reads it
+off the `type` MIP of a bind — can now answer:
+
+```js
+adapter.getTypeAnnotation = function(node) {
+    return '{http://www.w3.org/2001/XMLSchema}decimal';   // or null
+};
+```
+
+The answer is an expanded QName in Clark notation, which is the key the static
+context's data type registry already takes, so the whole type set is reachable
+and user-defined types come along. **The default implementation returns
+`null`**, so an embedder that does not override the method sees exactly the
+behaviour of the previous release.
+
+- `fn:sum()` over two fields holding `2.01` and `0.01` is `2.02` when the nodes
+  carry `xs:decimal`. Untyped it stays `2.0199999999999996`, which is what
+  `xs:double` means and not something the arithmetic can fix.
+- Two fields holding `00:00:00` and `24:00:00` are equal when the nodes carry
+  `xs:time`, and different as text — the example XForms 2.0, chapter
+  "Expressions", section "Typed Values" gives for this.
+
+**A cast that fails is silent and the node stays untyped.** XForms 2.0, section
+"Validity" allows a node to hold a value that does not match its declared type,
+so `xs:decimal` over `"abc"` must keep evaluating rather than raise.
+
+⚠️ `atomize()` calls the method on **every** access to a node, not once per
+expression. An implementation has to answer in constant time.
+
+### Fixed — twelve types could never be cast from an untyped value
+
+`xs:anyURI`, `xs:base64Binary`, `xs:hexBinary`, `xs:duration`,
+`xs:dayTimeDuration`, `xs:yearMonthDuration`, `xs:gDay`, `xs:gMonth`,
+`xs:gMonthDay`, `xs:gYear`, `xs:gYearMonth` and `xs:QName` named
+`cXSUntypedAtomic` in their `cast()` — and the five gregorian types also
+`cXSDate`, the two binary types each other — without ever bringing the
+identifier into the file. Casting an untyped value to any of them raised
+`ReferenceError: cXSUntypedAtomic is not defined` instead of converting.
+
+Measured across the twenty-one types the `type` MIP can name: **twelve failed,
+nine worked.** The two binary types now compare built-in kinds rather than
+requiring each other, which would have been a load cycle.
+
+This is the same defect class as the `xs:integer()` `ReferenceError` fixed
+above, and the whole class is closed rather than the one type that surfaced it.
+
 ### Changed — comparing two untyped values that are both written as numbers
 
 XPath 2.0, section "General Comparisons" compares two untyped operands as
