@@ -55,6 +55,12 @@ previously returned an `xs:integer` holding a fraction.
 
 ### Fixed
 
+- Unary minus negated its operand in place. A variable reference hands out the
+  object held in scope itself, so `-$v` changed `$v`: with `$v` at `10`,
+  `$v * -$v` answered `100` instead of `-100`, and `$v` was left holding `-10`
+  for whatever came after it in the same expression. It now returns a new
+  value and leaves the operand alone. This affected every numeric type; it was
+  never about precision.
 - `fn:round-half-to-even()` was declared as taking `xs:double`, so its
   argument was converted before the function saw it and a decimal was rounded
   as a binary approximation of itself. It returns the type it was given —

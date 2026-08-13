@@ -159,6 +159,27 @@ describe("decimal precision", function() {
         });
     });
 
+    // Case 10 — nothing to do with precision. Unary minus wrote the negated
+    // value back into its operand, and a variable reference hands out the very
+    // object held in scope, so negating $v changed $v for the rest of the
+    // expression. Every numeric type is affected equally.
+    describe("unary minus leaves its operand alone", function() {
+        it('$v * -$v is -100 when $v is 10', function() {
+            expect(String(xpath.evaluate("$v * -$v", null, null, {v: 10})[0]))
+                .to.equal("-100");
+        });
+
+        it('does not change the variable for what follows', function() {
+            expect(String(xpath.evaluate("(-$v, $v)", null, null, {v: 10})[1]))
+                .to.equal("10");
+        });
+
+        it('negates a decimal without disturbing it either', function() {
+            expect(String(xpath.evaluate("$v * -$v", null, null, {v: 1.5})[0]))
+                .to.equal("-2.25");
+        });
+    });
+
     // Functions and Operators, section "Casting to numeric types": casting to
     // xs:integer truncates towards zero. This path raised a ReferenceError
     // before the type was rewritten, because three identifiers it used were

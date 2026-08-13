@@ -1,6 +1,6 @@
 {
     "name": "@xformado/xpath2",
-    "version": "1.0.0-beta.5",
+    "version": "1.0.0-beta.6",
     "license": "MIT",
     "description": "DOM-agnostic XPath 2 parser and evaluator — fork of xpath2.js, extended for the xformado form engine",
     "main": "lib/index.js",
